@@ -165,3 +165,72 @@ func VertexCount(p Polys) int {
 	}
 	return n
 }
+
+// Split separates normalised polygons into individual pieces: each outer
+// ring together with the holes directly inside it. Pieces come out in the
+// order of their outer rings.
+func Split(p Polys) []Polys {
+	type outer struct {
+		path  clipper.Path64
+		area  float64
+		piece Polys
+	}
+	var outers []*outer
+	var holes []clipper.Path64
+	for _, path := range p {
+		if a := clipper.Area64(path); a > 0 {
+			outers = append(outers, &outer{path: path, area: a, piece: Polys{path}})
+		} else if a < 0 {
+			holes = append(holes, path)
+		}
+	}
+	for _, h := range holes {
+		var best *outer
+		for _, o := range outers {
+			if best != nil && o.area >= best.area {
+				continue
+			}
+			if ringInside(h, o.path) {
+				best = o
+			}
+		}
+		if best != nil {
+			best.piece = append(best.piece, h)
+		}
+	}
+	out := make([]Polys, len(outers))
+	for i, o := range outers {
+		out[i] = o.piece
+	}
+	return out
+}
+
+// ringInside reports whether ring r lies inside ring o, judged by the first
+// vertex of r that isn't on o's boundary.
+func ringInside(r, o clipper.Path64) bool {
+	for _, pt := range r {
+		switch clipper.PointInPolygon(pt, o) {
+		case clipper.IsInside:
+			return true
+		case clipper.IsOutside:
+			return false
+		}
+	}
+	return false
+}
+
+// Contains reports whether pt (inches) is inside the filled area of p.
+func Contains(p Polys, pt Pt) bool {
+	q := clipper.Point64{X: toInt(pt.X), Y: toInt(pt.Y)}
+	winding := 0
+	for _, path := range p {
+		if clipper.PointInPolygon(q, path) == clipper.IsInside {
+			if clipper.Area64(path) > 0 {
+				winding++
+			} else {
+				winding--
+			}
+		}
+	}
+	return winding > 0
+}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -455,7 +456,7 @@ func (p *pipeline) run() (*Result, error) {
 	}
 	res := &Result{
 		Layers:      layers,
-		TemplateSVG: svgout.Template(meta, shift(tmpl)),
+		TemplateSVG: svgout.Template(meta, openings(shapes, shift(tmpl), shift)),
 		PreviewSVG: svgout.Preview(meta, svgout.Layers{
 			Original: shift(origUnion),
 			Template: shift(tmpl),
@@ -651,6 +652,94 @@ func (p *pipeline) bridges(shapes []shape) ([]Bridge, float64, error) {
 		p.add(Note{Kind: NoteBridge, Bridge: -1, Text: fmt.Sprintf("%d more thin bridges are marked on the preview.", thin-8)})
 	}
 	return kept, best, nil
+}
+
+// openings splits the merged template into one piece per opening and names
+// each after the shapes inside it ("left-eye", "nose-and-mouth"), falling
+// back to "opening-N". Pieces are ordered by their first shape, so the file
+// lists them in the drawing's order.
+func openings(shapes []shape, tmpl geom.Polys, shift func(geom.Polys) geom.Polys) []svgout.Opening {
+	pieces := geom.Split(tmpl)
+	members := make([][]shape, len(pieces))
+	for _, s := range shapes {
+		orig := geom.ToRings(shift(s.orig))
+		if len(orig) == 0 || len(orig[0]) == 0 {
+			continue
+		}
+		pt := orig[0][0]
+		best, bestArea := -1, math.Inf(1)
+		for i, pc := range pieces {
+			// A shape's vertex is strictly inside the opening grown from it,
+			// since every mode offsets outward by at least the bushing wall.
+			if a := geom.Area(pc); a < bestArea && geom.Contains(pc, pt) {
+				best, bestArea = i, a
+			}
+		}
+		if best >= 0 {
+			members[best] = append(members[best], s)
+		}
+	}
+	order := make([]int, len(pieces))
+	for i := range order {
+		order[i] = i
+	}
+	first := func(i int) int {
+		if len(members[i]) == 0 {
+			return math.MaxInt
+		}
+		return members[i][0].index
+	}
+	sort.SliceStable(order, func(a, b int) bool { return first(order[a]) < first(order[b]) })
+
+	used := map[string]bool{}
+	out := make([]svgout.Opening, 0, len(pieces))
+	for n, i := range order {
+		// Name after its shapes when they're few and all named.
+		var names []string
+		for _, s := range members[i] {
+			if id := xmlID(s.name); id != "" {
+				names = append(names, id)
+			}
+		}
+		id := fmt.Sprintf("opening-%d", n+1)
+		if len(names) > 0 && len(names) == len(members[i]) && len(names) <= 3 {
+			id = strings.Join(names, "-and-")
+		}
+		base := id
+		for k := 2; used[id]; k++ {
+			id = fmt.Sprintf("%s-%d", base, k)
+		}
+		used[id] = true
+		out = append(out, svgout.Opening{ID: id, Polys: pieces[i]})
+	}
+	return out
+}
+
+var genericID = regexp.MustCompile(`^(path|rect|circle|ellipse|polygon|polyline|layer|g)-?\d*$`)
+
+// xmlID turns a shape name into a safe, readable id, or "" for names that
+// carry no meaning (path123, rect7…).
+func xmlID(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			dash = false
+		case !dash && b.Len() > 0:
+			b.WriteByte('-')
+			dash = true
+		}
+	}
+	id := strings.Trim(b.String(), "-")
+	if id == "" || id[0] < 'a' || id[0] > 'z' || len(id) > 40 {
+		return ""
+	}
+	if genericID.MatchString(id) {
+		return ""
+	}
+	return id
 }
 
 func limitMessage(err error) string {

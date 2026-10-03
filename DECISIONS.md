@@ -29,6 +29,10 @@ Red is reserved for the cut. Warnings use a brass bar, never red.
 
 `template.Result.Notes` carries `{kind, text, shapes, bridge}`, so the UI can pulse the right bridge marker or highlight a shape when a warning is clicked. Text follows the design voice. Shape names come from the SVG `id` or `inkscape:label` ("the left eye"). Generic ids like `path123` fall back to "shape 3".
 
+## Template file: one path per opening
+
+Laser software (xTool Studio, LightBurn) treats each SVG element as one object, so the template writes each opening as its own top-level `<path>`, with no wrapping `<g>`. A shape with a counter keeps its hole inside its own path. Each path's `id` comes from the shapes inside it ("left-eye", "nose-and-mouth" when two merge), or falls back to "opening-N". That lets users set cut, score or engrave per shape.
+
 ## Spec deviations
 
 - **Piece mode, convex corners:** the spec's square test assumed rounded corners in both modes. In piece mode, outside corners of the piece stay sharp, because the bit's far edge wraps them. The tests assert that.

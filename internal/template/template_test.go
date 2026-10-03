@@ -204,3 +204,31 @@ func FuzzProcess(f *testing.F) {
 		}
 	})
 }
+
+func TestTemplateOnePathPerOpening(t *testing.T) {
+	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 4">
+	  <rect id="nose" x="0.5" y="1" width="1" height="1"/>
+	  <rect id="path12" x="2.5" y="1" width="1" height="1"/>
+	  <path id="Left Eye!" d="M4.5 1H5.5V2H4.5Z"/>
+	  <rect id="a" x="0.5" y="2.6" width="1" height="1"/><rect id="b" x="1.6" y="2.6" width="1" height="1"/>
+	  <path id="ring" d="M3 2.4H5.6V3.9H3Z M3.6 2.9V3.4H5V2.9Z"/>
+	</svg>`
+	res := run(t, svg, scaled(DefaultOptions()))
+	out := string(res.TemplateSVG)
+	for _, want := range []string{`id="nose"`, `id="opening-2"`, `id="left-eye"`, `id="a-and-b"`, `id="ring"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("template missing %s:\n%s", want, out)
+		}
+	}
+	if n := strings.Count(out, "<path "); n != 5 {
+		t.Errorf("got %d paths, want 5 (one per opening)", n)
+	}
+	if strings.Contains(out, "<g") {
+		t.Error("template should have no groups to ungroup")
+	}
+	// The ring's hole stays in the ring's own path.
+	i := strings.Index(out, `id="ring"`)
+	if strings.Count(out[i:strings.Index(out[i:], "/>")+i], "Z") != 2 {
+		t.Error("ring opening should carry its hole")
+	}
+}

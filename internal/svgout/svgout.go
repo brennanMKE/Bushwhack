@@ -83,17 +83,29 @@ func describe(m Meta) string {
 		units.Fraction(m.Offset), m.Offset)
 }
 
+// Opening is one cut-out in the template: an outer ring plus any holes
+// inside it, written as its own <path> so laser and CNC software can select
+// it and assign it to a layer on its own.
+type Opening struct {
+	ID    string // unique XML id
+	Polys geom.Polys
+}
+
 // Template writes the cut-ready template: black hairline outlines at true
-// size with physical units declared.
-func Template(m Meta, tmpl geom.Polys) []byte {
+// size with physical units declared, one top-level <path> per opening (no
+// wrapping group, so nothing needs ungrouping on import).
+func Template(m Meta, openings []Opening) []byte {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="%sin" height="%sin" viewBox="0 0 %s %s">
 <title>Bushwhack router template</title>
 <desc>%s Import at 100%% and do not rescale.</desc>
-<path d="%s" fill="none" stroke="#000000" stroke-width="0.01" fill-rule="evenodd"/>
-</svg>
-`, num(m.PageW), num(m.PageH), num(m.PageW), num(m.PageH), escape(describe(m)), PathData(tmpl))
+`, num(m.PageW), num(m.PageH), num(m.PageW), num(m.PageH), escape(describe(m)))
+	for _, o := range openings {
+		fmt.Fprintf(&b, `<path id="%s" d="%s" fill="none" stroke="#000000" stroke-width="0.01" fill-rule="evenodd"/>
+`, escape(o.ID), PathData(o.Polys))
+	}
+	b.WriteString("</svg>\n")
 	return []byte(b.String())
 }
 
