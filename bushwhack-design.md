@@ -137,7 +137,7 @@ Header: wordmark on the left, then "Make", "Patterns", and "Guide" as plain text
 |  Coming up: Halloween          [tile] [tile] [tile] [tile]    |
 |  See all patterns                                             |
 +---------------------------------------------------------------+
-|  footer on mat green: Guide, Patterns, GitHub                   |
+|  footer on mat green: Guide, Patterns, GitHub                 |
 +---------------------------------------------------------------+
 ```
 
