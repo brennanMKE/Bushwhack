@@ -232,3 +232,28 @@ func TestTemplateOnePathPerOpening(t *testing.T) {
 		t.Error("ring opening should carry its hole")
 	}
 }
+
+func TestPreviewOnePathPerShape(t *testing.T) {
+	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 4">
+	  <rect id="nose" x="0.5" y="1" width="1" height="1"/>
+	  <rect x="2.5" y="1" width="1" height="1"/>
+	  <rect id="a" x="0.5" y="2.6" width="1" height="1"/><rect id="b" x="1.6" y="2.6" width="1" height="1"/>
+	</svg>`
+	out := string(run(t, svg, scaled(DefaultOptions())).PreviewSVG)
+	for _, want := range []string{
+		`id="drawing-nose"`, `id="drawing-shape-2"`, `id="drawing-a"`, `id="drawing-b"`,
+		`id="template-nose"`, `id="template-opening-2"`, `id="template-a-and-b"`,
+		`id="cut-nose"`, `id="cut-opening-2"`, `id="cut-a-and-b"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("preview missing %s", want)
+		}
+	}
+	// 4 drawing + 3 template + 3 cut paths, no groups.
+	if n := strings.Count(out, "<path "); n != 10 {
+		t.Errorf("got %d paths, want 10", n)
+	}
+	if strings.Contains(out, "<g>") || strings.Contains(out, "<g ") && strings.Count(out, "<g ") > 1 {
+		t.Error("only the legend may be grouped")
+	}
+}

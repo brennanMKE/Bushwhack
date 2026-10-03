@@ -454,13 +454,14 @@ func (p *pipeline) run() (*Result, error) {
 			marks = append(marks, svgout.Mark{P: b.P, Q: b.Q})
 		}
 	}
+	opens := openings(shapes, shift(tmpl), shift)
 	res := &Result{
 		Layers:      layers,
-		TemplateSVG: svgout.Template(meta, openings(shapes, shift(tmpl), shift)),
+		TemplateSVG: svgout.Template(meta, opens),
 		PreviewSVG: svgout.Preview(meta, svgout.Layers{
-			Original: shift(origUnion),
-			Template: shift(tmpl),
-			Cut:      shift(cut),
+			Original: drawingPieces(shapes, shift),
+			Template: prefixed("template-", opens),
+			Cut:      cutPieces(opens, shift(cut)),
 			Bridges:  marks,
 			BushingR: bushingR,
 		}),
@@ -705,14 +706,75 @@ func openings(shapes []shape, tmpl geom.Polys, shift func(geom.Polys) geom.Polys
 		if len(names) > 0 && len(names) == len(members[i]) && len(names) <= 3 {
 			id = strings.Join(names, "-and-")
 		}
-		base := id
-		for k := 2; used[id]; k++ {
-			id = fmt.Sprintf("%s-%d", base, k)
-		}
-		used[id] = true
-		out = append(out, svgout.Opening{ID: id, Polys: pieces[i]})
+		out = append(out, svgout.Opening{ID: unique(used, id), Polys: pieces[i]})
 	}
 	return out
+}
+
+// drawingPieces is the original drawing, one piece per shape, with ids like
+// "drawing-left-eye" or "drawing-shape-3".
+func drawingPieces(shapes []shape, shift func(geom.Polys) geom.Polys) []svgout.Opening {
+	used := map[string]bool{}
+	out := make([]svgout.Opening, 0, len(shapes))
+	for _, s := range shapes {
+		name := xmlID(s.name)
+		if name == "" {
+			name = fmt.Sprintf("shape-%d", s.index)
+		}
+		out = append(out, svgout.Opening{ID: unique(used, "drawing-"+name), Polys: shift(s.orig)})
+	}
+	return out
+}
+
+func prefixed(prefix string, in []svgout.Opening) []svgout.Opening {
+	out := make([]svgout.Opening, len(in))
+	for i, o := range in {
+		out[i] = svgout.Opening{ID: prefix + o.ID, Polys: o.Polys}
+	}
+	return out
+}
+
+// cutPieces splits the simulated cut into its separate cut-outs and names
+// each after the template opening it sits in ("cut-left-eye").
+func cutPieces(opens []svgout.Opening, cut geom.Polys) []svgout.Opening {
+	type piece struct {
+		polys geom.Polys
+		open  int // index into opens, or len(opens) if none
+	}
+	var pieces []piece
+	for _, pc := range geom.Split(cut) {
+		p := piece{pc, len(opens)}
+		if rings := geom.ToRings(pc); len(rings) > 0 && len(rings[0]) > 0 {
+			for i, o := range opens {
+				if geom.Contains(o.Polys, rings[0][0]) {
+					p.open = i
+					break
+				}
+			}
+		}
+		pieces = append(pieces, p)
+	}
+	// Same order as the template, so the file reads in the drawing's order.
+	sort.SliceStable(pieces, func(i, j int) bool { return pieces[i].open < pieces[j].open })
+	used := map[string]bool{}
+	out := make([]svgout.Opening, len(pieces))
+	for n, p := range pieces {
+		name := fmt.Sprintf("cut-%d", n+1)
+		if p.open < len(opens) {
+			name = "cut-" + opens[p.open].ID
+		}
+		out[n] = svgout.Opening{ID: unique(used, name), Polys: p.polys}
+	}
+	return out
+}
+
+func unique(used map[string]bool, id string) string {
+	base := id
+	for k := 2; used[id]; k++ {
+		id = fmt.Sprintf("%s-%d", base, k)
+	}
+	used[id] = true
+	return id
 }
 
 var genericID = regexp.MustCompile(`^(path|rect|circle|ellipse|polygon|polyline|layer|g)-?\d*$`)

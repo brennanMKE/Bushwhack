@@ -5,6 +5,7 @@ package svgout
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -23,11 +24,13 @@ type Meta struct {
 // Mark is a thin-bridge marker between two closest points.
 type Mark struct{ P, Q geom.Pt }
 
-// Layers are the preview's geometry, in page inches.
+// Layers are the preview's geometry, in page inches. Each piece becomes its
+// own top-level <path>, so every shape can be selected on its own; ids must
+// be unique across all three layers.
 type Layers struct {
-	Original geom.Polys // the drawing as submitted
-	Template geom.Polys // offset openings
-	Cut      geom.Polys // final edge in the workpiece
+	Original []Opening // the drawing as submitted, one per shape
+	Template []Opening // offset openings
+	Cut      []Opening // final edge in the workpiece, one per cut-out
 	Bridges  []Mark
 	BushingR float64 // radius of the bridge marker circle
 }
@@ -124,19 +127,22 @@ func Preview(m Meta, l Layers) []byte {
 <svg xmlns="http://www.w3.org/2000/svg" width="%sin" height="%sin" viewBox="0 0 %s %s">
 <title>Bushwhack preview</title>
 <desc>%s Dashed blue: your drawing. Black: the template. Red: where the router cuts. Brass circles: thin bridges.</desc>
-<rect x="0" y="0" width="%s" height="%s" fill="#ffffff"/>
-<rect x="0" y="0" width="%s" height="%s" fill="none" stroke="#c9ced6" stroke-width="1" vector-effect="non-scaling-stroke"/>
+<rect id="paper" x="0" y="0" width="%s" height="%s" fill="#ffffff"/>
+<rect id="page-edge" x="0" y="0" width="%s" height="%s" fill="none" stroke="#c9ced6" stroke-width="1" vector-effect="non-scaling-stroke"/>
 `, num(w), num(totalH), num(w), num(totalH), escape(describe(m)), num(w), num(totalH), num(w), num(h))
-	fmt.Fprintf(&b, `<path d="%s" %s/>
-`, PathData(l.Template), stroke(ColorTemplate, 1.2, ""))
-	fmt.Fprintf(&b, `<path d="%s" %s/>
-`, PathData(l.Cut), stroke(ColorCut, 1.6, ""))
-	fmt.Fprintf(&b, `<path d="%s" %s/>
-`, PathData(l.Original), stroke(ColorOriginal, 1.2, ` stroke-dasharray="5 3"`))
-	for _, mk := range l.Bridges {
+	paths := func(pieces []Opening, attrs string) {
+		for _, o := range pieces {
+			fmt.Fprintf(&b, `<path id="%s" d="%s" fill-rule="evenodd" %s/>
+`, escape(o.ID), PathData(o.Polys), attrs)
+		}
+	}
+	paths(l.Template, stroke(ColorTemplate, 1.2, ""))
+	paths(l.Cut, stroke(ColorCut, 1.6, ""))
+	paths(l.Original, stroke(ColorOriginal, 1.2, ` stroke-dasharray="5 3"`))
+	for i, mk := range l.Bridges {
 		cx, cy := (mk.P.X+mk.Q.X)/2, (mk.P.Y+mk.Q.Y)/2
-		fmt.Fprintf(&b, `<circle cx="%s" cy="%s" r="%s" %s/>
-`, num(cx), num(cy), num(l.BushingR), stroke(ColorBridge, 2, ""))
+		fmt.Fprintf(&b, `<circle id="thin-bridge-%d" cx="%s" cy="%s" r="%s" %s/>
+`, i+1, num(cx), num(cy), num(l.BushingR), stroke(ColorBridge, 2, ""))
 	}
 
 	fs := 0.13
@@ -162,8 +168,11 @@ func Preview(m Meta, l Layers) []byte {
 			num(x+fs*2.6), num(y), it.label)
 		x += fs * (2.6 + 0.55*float64(len(it.label)) + 1.4)
 	}
-	fmt.Fprintf(&b, `<text x="%s" y="%s" fill="#555555">%s Import at 100%%.</text></g>
-`, num(0.1*fs/0.13), num(y+fs*1.5), escape(describe(m)))
+	// The description is ~150 characters; size it to fit the page width.
+	desc := describe(m) + " Import at 100%."
+	dfs := math.Min(fs*0.85, (w-0.2)/(0.5*float64(len(desc))))
+	fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="%s" fill="#555555">%s</text></g>
+`, num(0.1*fs/0.13), num(y+fs*1.5), num(dfs), escape(desc))
 	b.WriteString("</svg>\n")
 	return []byte(b.String())
 }

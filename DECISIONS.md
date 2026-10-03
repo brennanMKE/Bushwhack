@@ -31,7 +31,7 @@ Red is reserved for the cut. Warnings use a brass bar, never red.
 
 ## Template file: one path per opening
 
-Laser software (xTool Studio, LightBurn) treats each SVG element as one object, so the template writes each opening as its own top-level `<path>`, with no wrapping `<g>`. A shape with a counter keeps its hole inside its own path. Each path's `id` comes from the shapes inside it ("left-eye", "nose-and-mouth" when two merge), or falls back to "opening-N". That lets users set cut, score or engrave per shape.
+Laser software (xTool Studio, LightBurn) treats each SVG element as one object, so the template writes each opening as its own top-level `<path>`, with no wrapping `<g>`. A shape with a counter keeps its hole inside its own path. Each path's `id` comes from the shapes inside it ("left-eye", "nose-and-mouth" when two merge), or falls back to "opening-N". That lets users set cut, score or engrave per shape. The downloadable preview follows the same rule: `drawing-<name>` per shape, `template-<id>` per opening and `cut-<id>` per cut-out, all top-level paths. Only the legend is grouped.
 
 ## Spec deviations
 
