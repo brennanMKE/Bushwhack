@@ -1,0 +1,8 @@
+/bin/
+/web/node_modules/
+/web/build/
+/web/.svelte-kit/
+.DS_Store
+*.test
+/internal/template/testdata/fuzz/
+/internal/pathdata/testdata/fuzz/

@@ -1,0 +1,22 @@
+[
+  {"input": "5/16", "inches": 0.3125},
+  {"input": "0.3125", "inches": 0.3125},
+  {"input": ".3125", "inches": 0.3125},
+  {"input": "5/16\"", "inches": 0.3125},
+  {"input": "5/16 in", "inches": 0.3125},
+  {"input": "5/16in", "inches": 0.3125},
+  {"input": "1 1/4", "inches": 1.25},
+  {"input": "1-1/4", "inches": 1.25},
+  {"input": "1 1/4 inches", "inches": 1.25},
+  {"input": "8mm", "inches": 0.31496062992125984},
+  {"input": "8 mm", "inches": 0.31496062992125984},
+  {"input": "0.8cm", "inches": 0.31496062992125984},
+  {"input": "6", "inches": 6},
+  {"input": "  3/8  ", "inches": 0.375},
+  {"input": "", "error": true},
+  {"input": "abc", "error": true},
+  {"input": "1/0", "error": true},
+  {"input": "1/2/3", "error": true},
+  {"input": "mm", "error": true},
+  {"input": "5//16", "error": true}
+]

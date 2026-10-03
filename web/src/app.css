@@ -1,0 +1,262 @@
+/* Bushwhack: the workbench. Tokens from bushwhack-design.md §3. */
+
+@font-face {
+	font-family: 'Big Shoulders Stencil';
+	src: url('/fonts/big-shoulders-stencil.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Atkinson Hyperlegible Next';
+	src: url('/fonts/atkinson-hyperlegible-next.woff2') format('woff2');
+	font-weight: 200 800;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Atkinson Hyperlegible Next';
+	src: url('/fonts/atkinson-hyperlegible-next-italic.woff2') format('woff2');
+	font-weight: 200 800;
+	font-style: italic;
+	font-display: swap;
+}
+
+:root {
+	/* palette */
+	--mat: #1f4a3f;
+	--mat-grid: #5e8e80;
+	--shop-wall: #e4e9e3;
+	--graphite: #23262a;
+	--brass: #c4943a;
+	--hardboard: #8a5e36;
+	--chalk: #2e6fd8;
+	--chalk-on-mat: #7aa7f0;
+	--cut: #c93a2e;
+	--cut-on-mat: #f07a6e;
+
+	/* roles */
+	--bg: var(--shop-wall);
+	--text: var(--graphite);
+	--text-soft: #4a5049;
+	--surface: #f4f6f3; /* inputs */
+	--line: #8f9a92;
+	--rule: #c7cfc8;
+	--action: var(--brass);
+	--on-action: var(--graphite);
+	--focus: var(--brass);
+
+	/* type */
+	--font-display: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif;
+	--font-text: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--step--1: 0.85rem;
+	--step-0: 1.0625rem;
+	--step-1: 1.33rem;
+	--step-2: 1.66rem;
+	--step-3: 2.07rem;
+	--step-4: 2.6rem;
+	--display: clamp(3rem, 2rem + 4vw, 5.5rem);
+
+	/* space: 8px base */
+	--s1: 0.5rem;
+	--s2: 1rem;
+	--s3: 1.5rem;
+	--s4: 2rem;
+	--s6: 3rem;
+	--s8: 4rem;
+
+	--radius: 2px;
+	--wrap: 76rem;
+	--gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #16302a;
+		--text: var(--shop-wall);
+		--text-soft: #b9c6bf;
+		--surface: #1f4a3f;
+		--line: #5e8e80;
+		--rule: #2c5247;
+		--brass: #d9a84a;
+		--chalk: #7aa7f0;
+		--cut: #f07a6e;
+		color-scheme: dark;
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-text);
+	font-size: var(--step-0);
+	line-height: 1.55;
+	font-variant-numeric: tabular-nums;
+}
+
+.app {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+h1,
+h2 {
+	font-family: var(--font-display);
+	letter-spacing: 0.01em;
+	line-height: 0.95;
+	margin: 0 0 var(--s2);
+	text-wrap: balance;
+}
+h1 {
+	font-size: var(--display);
+	font-weight: 800;
+}
+h2 {
+	font-size: var(--step-4);
+	font-weight: 700;
+}
+h3 {
+	font-size: var(--step-1);
+	font-weight: 700;
+	line-height: 1.2;
+	margin: var(--s3) 0 var(--s1);
+}
+p {
+	margin: 0 0 var(--s2);
+}
+.prose {
+	max-width: 68ch;
+}
+
+a {
+	color: inherit;
+	text-decoration-color: var(--brass);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+}
+a:hover {
+	text-decoration-thickness: 3px;
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+code {
+	font-family: var(--font-text);
+	font-weight: 700;
+}
+
+.wrap {
+	width: 100%;
+	max-width: var(--wrap);
+	margin-inline: auto;
+	padding-inline: var(--gutter);
+}
+
+.visually-hidden {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* buttons: 2px machined edge, brass is the only action colour */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--s1);
+	min-height: 2.75rem;
+	padding: 0.55rem 1.1rem;
+	border-radius: var(--radius);
+	border: 2px solid var(--brass);
+	background: var(--brass);
+	color: var(--on-action);
+	font: inherit;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+}
+.btn:hover {
+	filter: brightness(1.06);
+}
+.btn:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	filter: none;
+}
+.btn.quiet {
+	background: transparent;
+	color: var(--text);
+}
+.textlink {
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	font-weight: 700;
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--brass);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+/* Notes: graphite text, brass bar, never red */
+.note {
+	display: flex;
+	gap: 0.6rem;
+	align-items: flex-start;
+	padding: 0.6rem 0.8rem;
+	border-left: 4px solid var(--brass);
+	background: color-mix(in srgb, var(--brass) 10%, transparent);
+	color: var(--text);
+	text-align: left;
+	font: inherit;
+	width: 100%;
+	border-top: 0;
+	border-right: 0;
+	border-bottom: 0;
+}
+.note svg {
+	flex: none;
+	width: 1.2rem;
+	height: 1.2rem;
+	margin-top: 0.15rem;
+	color: var(--brass);
+}
+button.note {
+	cursor: pointer;
+}
+button.note:hover {
+	background: color-mix(in srgb, var(--brass) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
