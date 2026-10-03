@@ -124,7 +124,7 @@ func TestPatternsAPI(t *testing.T) {
 			Patterns []json.RawMessage `json:"patterns"`
 		} `json:"occasions"`
 	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil || len(out.Occasions) != 6 {
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil || len(out.Occasions) != 7 {
 		t.Fatalf("bad patterns response: %v %.200s", err, rec.Body)
 	}
 	rec = httptest.NewRecorder()

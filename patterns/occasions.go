@@ -20,7 +20,10 @@ var Occasions = []Occasion{
 	{"spring", "Spring", "Eggs, flowers and bunnies for Easter and the first warm days.", 2, 15, 4, 30},
 	{"july4", "July 4", "Stars and bursts for the Fourth.", 5, 1, 7, 4},
 	{"halloween", "Halloween", "Jack-o'-lanterns, bats and ghosts. Back them with orange acrylic and light them up.", 9, 1, 10, 31},
-	{"winter", "Winter holidays", "Snowflakes, trees and ornaments for the end of the year.", 11, 1, 12, 31},
+	// Thanksgiving is the fourth Thursday of November, Nov 22 to 28; the
+	// window runs to the latest possible date so it stays deterministic.
+	{"thanksgiving", "Thanksgiving", "Turkeys, pumpkins and autumn leaves for the harvest table.", 11, 1, 11, 28},
+	{"winter", "Winter holidays", "Snowflakes, snowmen, stockings and candles for the end of the year.", 11, 29, 12, 31},
 	{"celebrations", "Celebrations", "Birthdays, weddings and anniversaries, any time of year.", 0, 0, 0, 0},
 }
 
