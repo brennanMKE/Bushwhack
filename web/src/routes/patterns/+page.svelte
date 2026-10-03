@@ -18,7 +18,7 @@
 
 <div class="wrap page">
 	<h1>Patterns</h1>
-	<p class="prose lead">Original starter shapes for holidays and special days, each checked to cut cleanly with a 5/16 in bushing and 1/8 in bit at its recommended size. Free to use, sell what you make.</p>
+	<p class="prose lead">Original starter shapes for holidays and special days, each checked to cut cleanly with a 5/16 in bushing and 1/8 in bit at its recommended size. Every one fits a 6 × 6 in template. Free to use, sell what you make.</p>
 
 	{#if failed}
 		<div class="note" role="alert"><span>Patterns didn't load. Refresh the page to try again.</span></div>

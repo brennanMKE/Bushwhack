@@ -49,6 +49,7 @@ Every pattern in `patterns/` must pass `go test ./patterns/`. At its recommended
 - features at least 3/16 in wide
 - a 0.25 in margin
 - an inch-based canvas
+- a recommended size of at most 5 in, so the template fits a 6 × 6 in jig with a 3/8 in border
 
 ## License
 

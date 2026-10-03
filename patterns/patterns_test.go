@@ -36,6 +36,13 @@ func TestUpcoming(t *testing.T) {
 	}
 }
 
+// Every pattern fits a 6 x 6 in template jig at its recommended size.
+const (
+	jig       = 6.0
+	jigArt    = 5.0 // longest side of the drawing
+	jigBorder = 0.375
+)
+
 var allowedTransform = regexp.MustCompile(`^\s*((translate|scale)\([^)]*\)\s*)*$`)
 
 // TestPatternRules enforces the design rules on every pattern.
@@ -50,6 +57,9 @@ func TestPatternRules(t *testing.T) {
 	for _, p := range lib.All() {
 		t.Run(p.Slug, func(t *testing.T) {
 			checkMarkup(t, p.SVG)
+			if p.RecommendedSizeIn > jigArt {
+				t.Errorf("recommended size %.2f in; keep it at most %.0f in so the template fits a %.0f in jig", p.RecommendedSizeIn, jigArt, jig)
+			}
 			o := p.Options(template.DefaultOptions())
 			res, err := template.Process(context.Background(), p.SVG, o)
 			if err != nil {
@@ -62,6 +72,11 @@ func TestPatternRules(t *testing.T) {
 				if n.Kind != template.NoteBridge {
 					t.Errorf("warning: %s", n.Text)
 				}
+			}
+			// The template openings fit a 6 x 6 in jig with a border to clamp.
+			tb := geom.Bounds(pathPolys(t, res.Layers.Template))
+			if w, h := tb.MaxX-tb.MinX, tb.MaxY-tb.MinY; w > jig-2*jigBorder || h > jig-2*jigBorder {
+				t.Errorf("template openings are %.2f x %.2f in; they must fit a %.0f in jig with a %.2f in border", w, h, jig, jigBorder)
 			}
 			// Aspect close to square.
 			if r := math.Max(res.PageWidthIn, res.PageHeightIn) / math.Min(res.PageWidthIn, res.PageHeightIn); r > 1.3 {
