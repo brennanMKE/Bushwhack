@@ -49,3 +49,7 @@ Every pattern in `patterns/` must pass `go test ./patterns/`. At its recommended
 - features at least 3/16 in wide
 - a 0.25 in margin
 - an inch-based canvas
+
+## License
+
+The code is MIT (`LICENSE`). The starter patterns in `patterns/` are CC0 (`patterns/LICENSE`). Fonts in `web/static/fonts` are under the SIL Open Font License: Big Shoulders Stencil and Atkinson Hyperlegible Next. Polygon offsetting uses [go-clipper2](https://github.com/bolom009/go-clipper2) (Boost).
