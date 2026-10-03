@@ -376,8 +376,6 @@
 		grid-area: preview;
 		display: grid;
 		gap: var(--s1);
-		position: sticky;
-		top: var(--s2);
 	}
 	.results {
 		grid-area: results;
@@ -697,9 +695,6 @@
 			grid-template-columns: minmax(0, 1fr);
 			grid-template-areas: 'preview' 'controls' 'results';
 			grid-template-rows: auto;
-		}
-		.preview {
-			position: static;
 		}
 		.canvas {
 			height: min(62vh, 520px);
