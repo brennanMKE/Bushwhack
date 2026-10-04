@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
@@ -20,7 +21,10 @@ func newTestServer(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 	static := fstest.MapFS{
-		"index.html":          {Data: []byte(`<html><script>boot()</script></html>`)},
+		"index.html":          {Data: []byte(`<html><head></head><h1>Home</h1><script>home()</script></html>`)},
+		"guide.html":          {Data: []byte(`<html><head></head><h1>Guide</h1><script>guide()</script></html>`)},
+		"spa.html":            {Data: []byte(`<html><head></head><script>boot()</script></html>`)},
+		"robots.txt":          {Data: []byte("User-agent: *\n")},
 		"_app/immutable/a.js": {Data: []byte(`x='<div style="position: absolute">'`)},
 		"fonts/f.woff2":       {Data: []byte("font")},
 	}
@@ -111,6 +115,102 @@ func TestSPAAndHeaders(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "boot()") {
 		t.Error("SPA shell not served for client route")
+	}
+	for _, src := range []string{"home()", "guide()", "boot()"} {
+		if !strings.Contains(csp, hash([]byte(src))) {
+			t.Errorf("csp missing hash for %s", src)
+		}
+	}
+}
+
+func get(h http.Handler, path string, hdr ...string) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", path, nil)
+	for i := 0; i+1 < len(hdr); i += 2 {
+		req.Header.Set(hdr[i], hdr[i+1])
+	}
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestPagesAndRedirects(t *testing.T) {
+	h := newTestServer(t)
+	if b := get(h, "/").Body.String(); !strings.Contains(b, "<h1>Home</h1>") {
+		t.Errorf("/ served %q", b)
+	}
+	if b := get(h, "/guide").Body.String(); !strings.Contains(b, "<h1>Guide</h1>") {
+		t.Errorf("/guide served %q", b)
+	}
+	for from, to := range map[string]string{
+		"/guide/":        "/guide",
+		"/guide.html":    "/guide",
+		"/index.html":    "/",
+		"/make/?bit=1/8": "/make?bit=1/8",
+		"/patterns/bat/": "/patterns/bat",
+	} {
+		rec := get(h, from)
+		if rec.Code != http.StatusMovedPermanently || rec.Header().Get("Location") != to {
+			t.Errorf("%s: %d to %q, want 301 to %q", from, rec.Code, rec.Header().Get("Location"), to)
+		}
+	}
+}
+
+func TestShellHead(t *testing.T) {
+	h := newTestServer(t)
+	b := get(h, "/patterns/bat").Body.String()
+	for _, want := range []string{"<title>Bat pattern · Bushwhack</title>", `<link rel="canonical" href="https://bushwhack.sstools.co/patterns/bat" />`, "for Halloween"} {
+		if !strings.Contains(b, want) {
+			t.Errorf("/patterns/bat missing %q", want)
+		}
+	}
+	if b := get(h, "/make?bushing=3/8").Body.String(); !strings.Contains(b, `href="https://bushwhack.sstools.co/make"`) {
+		t.Error("/make canonical should drop the query")
+	}
+	for _, p := range []string{"/nope", "/patterns/nope"} {
+		rec := get(h, p)
+		if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "noindex") || !strings.Contains(rec.Body.String(), "boot()") {
+			t.Errorf("%s: %d, want 404 shell with noindex", p, rec.Code)
+		}
+	}
+}
+
+func TestSitemapAndRobots(t *testing.T) {
+	lib, _ := patterns.Load()
+	h := New(Config{Static: fstest.MapFS{"index.html": {Data: []byte("<html></html>")}, "guide.html": {Data: []byte("<html></html>")}}, Patterns: lib, Updated: "2026-10-03"})
+	rec := get(h, "/sitemap.xml")
+	b := rec.Body.String()
+	for _, want := range []string{"<loc>https://bushwhack.sstools.co/</loc>", "<loc>https://bushwhack.sstools.co/guide</loc>", "<loc>https://bushwhack.sstools.co/make</loc>", "<loc>https://bushwhack.sstools.co/patterns/bat</loc>", "<lastmod>2026-10-03</lastmod>"} {
+		if !strings.Contains(b, want) {
+			t.Errorf("sitemap missing %s", want)
+		}
+	}
+	if !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/xml") {
+		t.Errorf("sitemap type %q", rec.Header().Get("Content-Type"))
+	}
+	if get(newTestServer(t), "/robots.txt").Code != 200 {
+		t.Error("robots.txt not served")
+	}
+}
+
+func TestGzip(t *testing.T) {
+	h := newTestServer(t)
+	rec := get(h, "/api/patterns", "Accept-Encoding", "gzip, br")
+	if rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Fatal("JSON not gzipped")
+	}
+	zr, err := gzip.NewReader(rec.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v map[string]any
+	if err := json.NewDecoder(zr).Decode(&v); err != nil {
+		t.Fatal(err)
+	}
+	if get(h, "/fonts/f.woff2", "Accept-Encoding", "gzip").Header().Get("Content-Encoding") != "" {
+		t.Error("fonts should not be gzipped")
+	}
+	if get(h, "/api/patterns").Header().Get("Content-Encoding") != "" {
+		t.Error("gzipped without Accept-Encoding")
 	}
 }
 

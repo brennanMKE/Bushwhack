@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import PatternTile from '#lib/components/PatternTile.svelte';
+	import Seo from '#lib/components/Seo.svelte';
 	import { loadPatterns, type Occasion } from '#lib/api.ts';
 
 	let occasions = $state<Occasion[]>([]);
@@ -14,7 +15,11 @@
 	});
 </script>
 
-<svelte:head><title>Patterns · Bushwhack</title></svelte:head>
+<Seo
+	title="Free router template patterns for holidays · Bushwhack"
+	description="Free SVG starter patterns for router templates: Halloween, Thanksgiving, Christmas, Hanukkah, New Year's, Valentine's Day and more. Each fits a 6 × 6 in template."
+	path="/patterns"
+/>
 
 <div class="wrap page">
 	<h1>Patterns</h1>

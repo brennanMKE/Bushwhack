@@ -9,8 +9,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			// SPA: one shell (index.html) for every route, served by the Go binary.
-			adapter: adapter({ pages: 'build', assets: 'build', fallback: 'index.html', strict: false })
+			// Content pages are prerendered to <route>.html; every other route
+			// (the workbench, pattern pages) loads the SPA shell, spa.html. The
+			// Go binary serves both.
+			adapter: adapter({ pages: 'build', assets: 'build', fallback: 'spa.html', strict: false })
 		})
 	],
 	server: {

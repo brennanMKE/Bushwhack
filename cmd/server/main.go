@@ -18,7 +18,10 @@ import (
 	"github.com/brennanMKE/Bushwhack/web"
 )
 
-var version = "dev"
+var (
+	version = "dev"
+	updated = "" // YYYY-MM-DD of the last commit, for the sitemap
+)
 
 func main() {
 	port := os.Getenv("PORT")
@@ -43,6 +46,7 @@ func main() {
 			Static:   web.FS(),
 			Patterns: lib,
 			Version:  version,
+			Updated:  updated,
 			Log:      log,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,

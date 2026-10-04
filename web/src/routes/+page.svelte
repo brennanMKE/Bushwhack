@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import HeroDemo from '#lib/components/HeroDemo.svelte';
 	import PatternTile from '#lib/components/PatternTile.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import OffsetTable from '#lib/components/OffsetTable.svelte';
+	import { SITE } from '#lib/site.ts';
 	import { loadPatterns, type Occasion } from '#lib/api.ts';
 
 	let upcoming = $state<Occasion | null>(null);
@@ -15,11 +18,29 @@
 	});
 </script>
 
-<svelte:head><title>Bushwhack: router templates that cut where you drew</title></svelte:head>
+<Seo
+	title="Bushwhack: router templates that cut where you drew"
+	description="Free router template maker. Upload an SVG, enter your guide bushing and bit, and get a true-size template offset so the cut lands on your line."
+	path="/"
+/>
+
+<svelte:head>
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: 'Bushwhack',
+		url: SITE + '/',
+		description: 'Upload an SVG, enter your guide bushing and bit, and get a router template offset so the cut lands on your line.',
+		applicationCategory: 'DesignApplication',
+		operatingSystem: 'Any',
+		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+		author: { '@type': 'Person', name: 'Brennan Stehling', url: 'https://brennan.sstools.co/' }
+	})}</script>`}
+</svelte:head>
 
 <section class="wrap hero">
 	<div class="copy">
-		<h1>Templates that cut where you drew.</h1>
+		<h1>Router templates that cut where you drew.</h1>
 		<p class="sub">Upload an SVG, tell us your guide bushing and bit, and get a template sized so your router lands right on the line.</p>
 		<div class="actions">
 			<a class="btn" href="/make">Make a template</a>
@@ -50,6 +71,39 @@
 		<p><a href="/patterns">See all patterns</a></p>
 	</section>
 {/if}
+
+<section class="wrap learn" aria-labelledby="offset">
+	<h2 id="offset">What is a guide bushing offset?</h2>
+	<div class="prose">
+		<p>A guide bushing is a metal collar in the router base. Its outside wall rides along the template while the bit spins in its centre, so the bit always cuts a fixed distance away from the template edge. That distance is the <strong>offset</strong>. Make a template at the exact size of your design and every opening comes out too small.</p>
+		<p>Bushwhack grows every opening in your drawing by the offset, so the cut lands on your line.</p>
+		<h3>The formula</h3>
+		<p class="formula"><code>offset = (bushing OD − bit diameter) ÷ 2</code></p>
+		<p><strong>Worked example:</strong> a 5/16 in bushing with a 1/8 in bit gives (0.3125 − 0.125) ÷ 2 = <strong>3/32 in (0.09375 in)</strong>. Every opening in the template is 3/32 in larger on each side than the hole you want.</p>
+		<h3>Holes and pieces</h3>
+		<p>That formula is for a <strong>hole</strong>: a pocket, recess or cut-out where the opening in your board should match the drawing. When the part that <strong>falls out</strong> should match the drawing, as for an inlay or a letter, the bit cuts on the far side of the line, so the offset is (bushing OD + bit diameter) ÷ 2. With the same setup, 7/32 in. In both cases the template opening is larger than the drawing.</p>
+	</div>
+	<OffsetTable caption="Template offsets for common bushing and bit pairs" />
+	<p><a href="/guide-bushing-offset">Offset calculator for any bushing and bit</a></p>
+</section>
+
+<section class="wrap learn" aria-labelledby="faq">
+	<h2 id="faq">Questions</h2>
+	<div class="prose faq">
+		<h3>What files does Bushwhack accept?</h3>
+		<p>SVG, from Inkscape, Illustrator, Affinity, Figma or any CAD program. Convert text to paths first. You get two SVGs back: a true-size template for a laser, CNC or scroll saw, and a printable reference showing where the router will cut.</p>
+		<h3>What should I make the template from?</h3>
+		<p>1/4 in hardboard, MDF or acrylic. It must be thicker than the bushing collar is tall, or the collar will scrape your work. Leave about 2 in of border around the openings for clamping.</p>
+		<h3>How sharp can an inside corner be?</h3>
+		<p>The inside corners of a hole come out rounded to the bit's radius, because the bit is round. The template's own corners can't be tighter than the bushing's radius, so Bushwhack rounds them for you. For crisper corners use a smaller bit, or square them with a chisel.</p>
+		<h3>Why does it warn about thin bridges?</h3>
+		<p>Growing the openings thins the strips of template between them. Bushwhack flags any strip under 1/4 in, because it can snap or flex under the bushing. Make the design bigger or space the shapes apart.</p>
+		<h3>Is it free? Are my files kept?</h3>
+		<p>Free, with no account. Uploads are processed in memory and never stored.</p>
+		<h3>Where do I learn more?</h3>
+		<p>The <a href="/guide">guide</a> covers making and using templates. There are also pages on <a href="/inlays">inlay templates</a> and <a href="/signs">sign and lettering templates</a>, and free <a href="/patterns">starter patterns</a>.</p>
+	</div>
+</section>
 
 <style>
 	.hero {
@@ -107,6 +161,16 @@
 		grid-template-columns: repeat(4, 1fr);
 		gap: var(--s3);
 		margin-bottom: var(--s3);
+	}
+	.learn {
+		padding-block: var(--s4) var(--s6);
+		border-top: 1px solid var(--rule);
+	}
+	.formula code {
+		font-size: var(--step-1);
+	}
+	.faq h3:first-child {
+		margin-top: 0;
 	}
 	@media (max-width: 860px) {
 		.hero {

@@ -20,9 +20,9 @@ internal/geom     Clipper2 wrapper, distances
 internal/template the pipeline: Process(ctx, svg, opts) → Result (pure, no I/O)
 internal/svgout   template and printable preview writers
 internal/units    "5/16", "1 1/4", "8mm" parsing (mirrored in web/src/lib/units.ts)
-internal/server   API, SPA fallback, CSP
+internal/server   API, pages and SPA fallback, sitemap, CSP, gzip
 patterns/         CC0 starter patterns (SVG + JSON) and the occasion calendar
-web/              SvelteKit SPA (adapter-static), built into web/build
+web/              SvelteKit (adapter-static): content pages prerendered, the rest an SPA, built into web/build
 testdata/         shared cases for the Go and TypeScript unit parsers
 deploy/           systemd unit, Apache vhosts, deploy script
 ```

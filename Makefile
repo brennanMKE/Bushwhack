@@ -2,7 +2,8 @@
 # build the web app first.
 
 VERSION ?= $(shell git describe --always --dirty 2>/dev/null || date -u +%Y%m%d%H%M)
-LDFLAGS := -s -w -X main.version=$(VERSION)
+UPDATED ?= $(shell git log -1 --format=%cs 2>/dev/null)
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.updated=$(UPDATED)
 BIN     := bin
 
 .PHONY: all web build linux test check dev demo run clean

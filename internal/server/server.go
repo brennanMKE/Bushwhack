@@ -35,12 +35,15 @@ type Config struct {
 	MaxConcurrent  int              // simultaneous /api/process calls
 	Version        string
 	Log            *slog.Logger
+	SiteURL        string // public origin for canonical links; default DefaultSiteURL
+	Updated        string // YYYY-MM-DD for sitemap <lastmod>; omitted when empty
 }
 
 type server struct {
 	cfg   Config
 	sem   chan struct{}
-	index []byte // SPA shell
+	pages map[string][]byte // prerendered pages by route
+	shell []byte            // SPA shell for every other route
 	csp   string
 }
 
@@ -61,9 +64,17 @@ func New(cfg Config) http.Handler {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
+	if cfg.SiteURL == "" {
+		cfg.SiteURL = DefaultSiteURL
+	}
+	cfg.SiteURL = strings.TrimRight(cfg.SiteURL, "/")
 	s := &server{cfg: cfg, sem: make(chan struct{}, cfg.MaxConcurrent)}
-	s.index, _ = fs.ReadFile(cfg.Static, "index.html")
-	s.csp = contentSecurityPolicy(s.index, styleAttrs(cfg.Static))
+	s.pages, s.shell = loadPages(cfg.Static)
+	docs := [][]byte{s.shell}
+	for _, b := range s.pages {
+		docs = append(docs, b)
+	}
+	s.csp = contentSecurityPolicy(docs, styleAttrs(cfg.Static))
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/process", s.process)
 	mux.HandleFunc("GET /api/patterns", s.patternList)
@@ -72,8 +83,9 @@ func New(cfg Config) http.Handler {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		io.WriteString(w, "ok "+cfg.Version+"\n")
 	})
+	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /", s.static())
-	return s.headers(mux)
+	return s.headers(gzipped(mux))
 }
 
 var inlineScript = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
@@ -112,13 +124,19 @@ func hash(b []byte) string {
 	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 }
 
-// contentSecurityPolicy allows the SPA shell's inline bootstrap script and
-// the app's few static style attributes by hash, so neither script-src nor
+// contentSecurityPolicy allows each page's inline bootstrap script and the
+// app's few static style attributes by hash, so neither script-src nor
 // style-src needs 'unsafe-inline'.
-func contentSecurityPolicy(index []byte, styles [][]byte) string {
+func contentSecurityPolicy(docs [][]byte, styles [][]byte) string {
 	scripts := "'self'"
-	for _, m := range inlineScript.FindAllSubmatch(index, -1) {
-		scripts += " " + hash(m[1])
+	seen := map[string]bool{}
+	for _, doc := range docs {
+		for _, m := range inlineScript.FindAllSubmatch(doc, -1) {
+			if h := hash(m[1]); !seen[h] {
+				seen[h] = true
+				scripts += " " + h
+			}
+		}
 	}
 	style := "'self'"
 	if len(styles) > 0 {
@@ -142,13 +160,22 @@ func (s *server) headers(next http.Handler) http.Handler {
 	})
 }
 
-// static serves built assets, and the SPA shell for every other path so
-// client routes like /make and /patterns/bat load directly.
+// static serves built assets, the prerendered pages, and the SPA shell for
+// client routes like /make and /patterns/bat. Unknown routes get the shell
+// with a 404 status, so the app shows its error page and crawlers drop them.
 func (s *server) static() http.Handler {
 	files := http.FileServerFS(s.cfg.Static)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
-		if p != "" && p != "index.html" {
+		if s.canonicalRedirect(w, r) {
+			return
+		}
+		route := path.Clean(r.URL.Path)
+		p := strings.TrimPrefix(route, "/")
+		if page, ok := s.pages[route]; ok {
+			serveHTML(w, r, http.StatusOK, page)
+			return
+		}
+		if p != "" && path.Ext(p) != ".html" {
 			if st, err := fs.Stat(s.cfg.Static, p); err == nil && !st.IsDir() {
 				if strings.HasPrefix(p, "_app/immutable/") {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
@@ -158,15 +185,29 @@ func (s *server) static() http.Handler {
 				files.ServeHTTP(w, r)
 				return
 			}
-			if strings.HasPrefix(p, "api/") || path.Ext(p) != "" {
-				http.NotFound(w, r)
-				return
-			}
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(s.index))
+		if strings.HasPrefix(p, "api/") || path.Ext(p) != "" {
+			http.NotFound(w, r)
+			return
+		}
+		h, ok := s.shellHead(route)
+		status := http.StatusOK
+		if !ok {
+			status = http.StatusNotFound
+		}
+		serveHTML(w, r, status, s.injectHead(s.shell, h))
 	})
+}
+
+func serveHTML(w http.ResponseWriter, r *http.Request, status int, page []byte) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	if status == http.StatusOK {
+		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(page))
+		return
+	}
+	w.WriteHeader(status)
+	w.Write(page)
 }
 
 type occasionJSON struct {

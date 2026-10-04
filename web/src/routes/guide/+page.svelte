@@ -1,4 +1,12 @@
-<svelte:head><title>Guide · Bushwhack</title></svelte:head>
+<script lang="ts">
+	import Seo from '#lib/components/Seo.svelte';
+</script>
+
+<Seo
+	title="How to make a router template for a guide bushing · Bushwhack"
+	description="How guide bushing offsets work, why corners round off, holes versus pieces, and how to make and rout with a template that lasts."
+	path="/guide"
+/>
 
 <article class="wrap guide">
 	<h1>Guide</h1>
@@ -87,6 +95,16 @@
 				<li>Let the bit stop before you lift the router out of the template.</li>
 			</ul>
 		</div>
+	</section>
+
+	<section aria-labelledby="g-more">
+		<h2 id="g-more">More</h2>
+		<ul class="prose">
+			<li><a href="/guide-bushing-offset">Guide bushing offset calculator</a>, with a table of common pairs.</li>
+			<li><a href="/inlays">Inlay templates</a>: a pocket and an insert from one drawing.</li>
+			<li><a href="/signs">Sign and lettering templates</a>.</li>
+			<li><a href="/patterns">Starter patterns</a> for holidays and special days.</li>
+		</ul>
 	</section>
 
 	<p><a class="btn" href="/make">Make a template</a></p>
