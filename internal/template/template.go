@@ -32,6 +32,7 @@ const (
 // Options are the user's inputs. All lengths are inches.
 type Options struct {
 	BushingOD float64
+	BushingID float64 // inside diameter; 0 = the standard one for BushingOD, if any
 	BitDia    float64
 	Mode      string  // "hole" | "piece"
 	Fit       string  // "canvas" | "artwork" | "document"
@@ -164,7 +165,37 @@ func ProcessWithLimits(ctx context.Context, input []byte, o Options, lim Limits)
 	return p.run()
 }
 
+// standardIDs are the established inside diameters for common bushing
+// outside diameters: the Porter-Cable 42000 sizes most makers follow, and
+// Festool's 17 mm. Mirrors web/src/lib/gear.ts.
+var standardIDs = [][2]float64{
+	{5.0 / 16, 1.0 / 4},
+	{3.0 / 8, 9.0 / 32},
+	{7.0 / 16, 11.0 / 32},
+	{1.0 / 2, 13.0 / 32},
+	{5.0 / 8, 17.0 / 32},
+	{3.0 / 4, 21.0 / 32},
+	{51.0 / 64, 5.0 / 8},
+	{1, 25.0 / 32},
+	{17 / 25.4, 14 / 25.4},
+}
+
+// StandardBushingID returns the usual inside diameter for a bushing's
+// outside diameter, if it's a standard size.
+func StandardBushingID(od float64) (float64, bool) {
+	for _, s := range standardIDs {
+		if math.Abs(s[0]-od) < 0.001 {
+			return s[1], true
+		}
+	}
+	return 0, false
+}
+
 func validate(o *Options) error {
+	inner, known := o.BushingID, o.BushingID > 0
+	if !known {
+		inner, known = StandardBushingID(o.BushingOD)
+	}
 	switch {
 	case o.BushingOD <= 0 || o.BushingOD > 4:
 		return inputErr("Enter a bushing outside diameter between 0 and 4 in.")
@@ -173,6 +204,11 @@ func validate(o *Options) error {
 	case o.BitDia >= o.BushingOD:
 		return inputErr("A %s bit won't fit through a %s bushing. Use a smaller bit or a bigger bushing.",
 			inches(o.BitDia), inches(o.BushingOD))
+	case o.BushingID < 0 || (o.BushingID > 0 && o.BushingID >= o.BushingOD):
+		return inputErr("The bushing's inside diameter must be smaller than its outside diameter.")
+	case known && o.BitDia >= inner:
+		return inputErr("A %s bit won't pass through the bushing's %s inside diameter. Use a smaller bit or a bigger bushing.",
+			inches(o.BitDia), inches(inner))
 	case o.MinBridge < 0 || o.MinBridge > 10:
 		return inputErr("Enter a minimum bridge between 0 and 10 in.")
 	case o.Scale < 0 || math.IsNaN(o.Scale) || math.IsInf(o.Scale, 0):

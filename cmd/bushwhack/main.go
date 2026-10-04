@@ -22,6 +22,7 @@ import (
 func main() {
 	def := template.DefaultOptions()
 	bushing := flag.String("bushing", "5/16", "guide bushing outer diameter (5/16, 0.3125, 8mm)")
+	bushingID := flag.String("bushing-id", "", "guide bushing inside diameter; default: the standard one for -bushing")
 	bit := flag.String("bit", "1/8", "router bit diameter")
 	mode := flag.String("mode", def.Mode, "hole: the opening matches the drawing; piece: the part that falls out matches")
 	fit := flag.String("fit", def.Fit, "canvas, artwork or document")
@@ -45,7 +46,10 @@ func main() {
 	for _, f := range []struct {
 		name, v string
 		dst     *float64
-	}{{"bushing", *bushing, &o.BushingOD}, {"bit", *bit, &o.BitDia}, {"size", *size, &o.Size}, {"min-bridge", *minBridge, &o.MinBridge}} {
+	}{{"bushing", *bushing, &o.BushingOD}, {"bushing-id", *bushingID, &o.BushingID}, {"bit", *bit, &o.BitDia}, {"size", *size, &o.Size}, {"min-bridge", *minBridge, &o.MinBridge}} {
+		if f.v == "" {
+			continue
+		}
 		v, err := units.ParseLength(f.v)
 		if err != nil {
 			die("-%s: %v", f.name, err)

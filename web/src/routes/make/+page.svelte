@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import MatPreview from '#lib/components/MatPreview.svelte';
 	import MeasureInput from '#lib/components/MeasureInput.svelte';
+	import GearPicker from '#lib/components/GearPicker.svelte';
+	import { bitFit, innerFor, standardInner, same } from '#lib/gear.ts';
 	import ModeToggle from '#lib/components/ModeToggle.svelte';
 	import PatternTile from '#lib/components/PatternTile.svelte';
 	import {
@@ -28,6 +30,12 @@
 	let fit = $state<'canvas' | 'artwork'>('canvas');
 	let size = $state('6');
 	let minBridge = $state(saved.minBridge);
+	let inner = $state(saved.inner);
+	let router = $state(saved.router);
+	let bushingPick = $state(saved.bushingPick);
+	let bitPick = $state(saved.bitPick);
+	const innerNow = $derived(innerFor(bushing, inner, bushingPick).value);
+	const fitCheck = $derived(bitFit(bushing, innerNow, bit));
 	let useDocument = $state(false);
 	let scale = $state('');
 
@@ -47,13 +55,15 @@
 	// Values that arrived in a shared link aren't saved as this browser's
 	// defaults until the viewer changes one of them.
 	let fromLink = '';
-	const settingsKey = () => JSON.stringify([bushing, bit, mode, minBridge]);
+	const settingsKey = () => JSON.stringify([bushing, inner, bit, mode, minBridge]);
 	$effect(() => {
 		const key = settingsKey();
-		if (key !== fromLink) saveSettings({ bushing, bit, mode, minBridge });
+		const picks = { router, bushingPick, bitPick };
+		if (key !== fromLink) saveSettings({ bushing, bit, mode, minBridge, inner, ...picks });
 	});
 
 	const valid = $derived(
+		fitCheck.ok &&
 		[bushing, bit, minBridge, ...(useDocument || scale.trim() ? [] : [size])].every((v) => {
 			const p = parseLength(v);
 			return p !== null && p.inches > 0;
@@ -78,7 +88,11 @@
 	$effect(() => {
 		const q = page.url.searchParams;
 		untrack(() => {
-			bushing = lengthParam(q, 'bushing') ?? bushing;
+			const b = lengthParam(q, 'bushing');
+			if (b) {
+				bushing = b;
+				inner = lengthParam(q, 'inner') ?? '';
+			}
 			bit = lengthParam(q, 'bit') ?? bit;
 			const m = q.get('mode');
 			if (m === 'hole' || m === 'piece') mode = m;
@@ -92,6 +106,8 @@
 	$effect(() => {
 		const want = {
 			bushing,
+			// The inside diameter only when it isn't the standard one for the size.
+			inner: innerNow && !same(innerNow, standardInner(bushing) ?? '') ? innerNow : '',
 			bit,
 			mode,
 			size: useDocument || scale.trim() ? '' : size,
@@ -109,7 +125,7 @@
 		// pattern null: nothing chosen yet, keep whatever the link asked for.
 		const pattern = want.pattern ?? url.searchParams.get('pattern');
 		if (pattern) q.set('pattern', pattern);
-		for (const k of ['bushing', 'bit', 'mode', 'size']) if (want[k]?.trim()) q.set(k, want[k]!.trim());
+		for (const k of ['bushing', 'inner', 'bit', 'mode', 'size']) if (want[k]?.trim()) q.set(k, want[k]!.trim());
 		// "/" is legal in a query; keep 5/16 readable.
 		const search = q.toString().replace(/%2F/gi, '/');
 		if (search === url.search.slice(1)) return;
@@ -153,7 +169,7 @@
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let inflight: AbortController | null = null;
 	$effect(() => {
-		const job = { source, bushing, bit, mode, fit, size, minBridge, useDocument, scale, valid };
+		const job = { source, bushing, innerNow, bit, mode, fit, size, minBridge, useDocument, scale, valid };
 		if (!job.source || !job.valid) return;
 		clearTimeout(timer);
 		timer = setTimeout(() => untrack(() => run()), 300);
@@ -169,6 +185,7 @@
 		if (source.kind === 'file') form.set('file', source.file);
 		else form.set('pattern', source.pattern.slug);
 		form.set('bushing', bushing);
+		if (innerNow) form.set('bushingId', innerNow);
 		form.set('bit', bit);
 		form.set('mode', mode);
 		form.set('fit', useDocument ? 'document' : fit);
@@ -284,9 +301,13 @@
 		</div>
 
 		<div class="group">
-			<MeasureInput id="bushing" label="Bushing outside diameter" bind:value={bushing} suggestions={['5/16', '3/8', '7/16', '1/2', '5/8', '3/4', '1', '10mm', '17mm', '30mm']} />
-			<MeasureInput id="bit" label="Bit diameter" bind:value={bit} suggestions={['1/8', '3/16', '1/4', '5/16', '3/8', '1/2', '3mm', '6mm', '8mm']} />
-			{#if offsetText}<p class="offset">Template grows by <strong>{offsetText}</strong></p>{/if}
+			<GearPicker bind:bushing bind:inner bind:bit bind:router bind:bushingPick bind:bitPick />
+			{#if fitCheck.error}
+				<p class="note" role="alert">{fitCheck.error}</p>
+			{:else if fitCheck.warn}
+				<p class="note">{fitCheck.warn}</p>
+			{/if}
+			{#if offsetText && fitCheck.ok}<p class="offset">Template grows by <strong>{offsetText}</strong></p>{/if}
 		</div>
 
 		<div class="group">

@@ -356,6 +356,9 @@ func ParseOptions(get func(string) string) (template.Options, error) {
 	if err := length("bushing", "Bushing OD", &o.BushingOD); err != nil {
 		return o, err
 	}
+	if err := length("bushingId", "Bushing inside diameter", &o.BushingID); err != nil {
+		return o, err
+	}
 	if err := length("bit", "Bit diameter", &o.BitDia); err != nil {
 		return o, err
 	}

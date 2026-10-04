@@ -101,6 +101,7 @@
 		<h2 id="g-more">More</h2>
 		<ul class="prose">
 			<li><a href="/guide-bushing-offset">Guide bushing offset calculator</a>, with a table of common pairs.</li>
+			<li><a href="/gear">Routers, bushings and bits</a>: sizes, and which bushings fit which router.</li>
 			<li><a href="/inlays">Inlay templates</a>: a pocket and an insert from one drawing.</li>
 			<li><a href="/signs">Sign and lettering templates</a>.</li>
 			<li><a href="/patterns">Starter patterns</a> for holidays and special days.</li>

@@ -1,4 +1,5 @@
-// Remembers bushing, bit, mode and minimum bridge per browser. Never the uploaded files.
+// Remembers the bushing, bit, mode, minimum bridge and picked gear per
+// browser. Never the uploaded files.
 
 const KEY = 'bushwhack.settings.v1';
 
@@ -7,9 +8,24 @@ export interface Saved {
 	bit: string;
 	mode: 'hole' | 'piece';
 	minBridge: string;
+	inner: string; // bushing inside diameter typed by hand; '' = from the pick or the standard
+	router: string; // gear.ts ids; '' = none picked
+	bushingPick: string;
+	bitPick: string;
 }
 
-export const defaults: Saved = { bushing: '5/16', bit: '1/8', mode: 'hole', minBridge: '1/4' };
+export const defaults: Saved = {
+	bushing: '5/16',
+	bit: '1/8',
+	mode: 'hole',
+	minBridge: '1/4',
+	inner: '',
+	router: '',
+	bushingPick: '',
+	bitPick: ''
+};
+
+const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
 
 export function loadSettings(): Saved {
 	try {
@@ -17,10 +33,14 @@ export function loadSettings(): Saved {
 		if (!raw) return { ...defaults };
 		const v = JSON.parse(raw);
 		return {
-			bushing: typeof v.bushing === 'string' ? v.bushing : defaults.bushing,
-			bit: typeof v.bit === 'string' ? v.bit : defaults.bit,
+			bushing: str(v.bushing, defaults.bushing),
+			bit: str(v.bit, defaults.bit),
 			mode: v.mode === 'piece' ? 'piece' : 'hole',
-			minBridge: typeof v.minBridge === 'string' ? v.minBridge : defaults.minBridge
+			minBridge: str(v.minBridge, defaults.minBridge),
+			inner: str(v.inner, ''),
+			router: str(v.router, ''),
+			bushingPick: str(v.bushingPick, ''),
+			bitPick: str(v.bitPick, '')
 		};
 	} catch {
 		return { ...defaults };

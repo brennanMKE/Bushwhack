@@ -153,6 +153,28 @@ func TestBadOptions(t *testing.T) {
 	}
 }
 
+func TestBitMustPassThroughBushing(t *testing.T) {
+	for _, c := range []struct {
+		od, id, bit float64
+		ok          bool
+	}{
+		{5.0 / 16, 0, 1.0 / 8, true},         // standard 1/4 in inside
+		{5.0 / 16, 0, 1.0 / 4, false},        // standard inside is exactly 1/4 in
+		{5.0 / 16, 17.0 / 64, 1.0 / 4, true}, // Bosch RA1103: 17/64 in inside
+		{1.0 / 2, 0, 7.0 / 16, false},        // standard 13/32 in inside
+		{0.55, 0, 0.5, true},                 // not a standard size: only the OD is known
+		{0.55, 0.45, 0.5, false},
+		{1.0 / 2, 0.6, 1.0 / 8, false}, // inside bigger than outside
+	} {
+		o := DefaultOptions()
+		o.BushingOD, o.BushingID, o.BitDia = c.od, c.id, c.bit
+		_, err := Process(context.Background(), []byte(square), scaled(o))
+		if (err == nil) != c.ok {
+			t.Errorf("OD %v ID %v bit %v: err %v, want ok=%v", c.od, c.id, c.bit, err, c.ok)
+		}
+	}
+}
+
 func TestShapeLabels(t *testing.T) {
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect id="nose" x="0.5" y="1" width="1" height="1"/><rect id="path12" x="1.8" y="1" width="1" height="1"/></svg>`
 	res := run(t, svg, scaled(DefaultOptions()))
