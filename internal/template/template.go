@@ -314,15 +314,18 @@ func (p *pipeline) run() (*Result, error) {
 	}
 
 	// Offset each opening, then merge.
-	var all, origAll geom.Polys
+	var origAll geom.Polys
 	outerIn := 0
 	for i := range shapes {
 		shapes[i].offset = geom.Offset(shapes[i].orig, offset)
 		outerIn += geom.OuterCount(shapes[i].offset)
-		all = append(all, shapes[i].offset...)
 		origAll = append(origAll, shapes[i].orig...)
 	}
-	tmpl := geom.Union(all)
+	// One offset over every drawing outline merges overlapping openings.
+	// Union of the per-shape offsets would do the same, but go-clipper2's
+	// union can fill in a sharp notch (a cat's ear went missing), while its
+	// offset handles the same outline correctly.
+	tmpl := geom.Offset(origAll, offset)
 	origUnion := geom.Union(origAll)
 	if err := p.check(); err != nil {
 		return nil, err

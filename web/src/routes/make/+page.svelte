@@ -314,6 +314,12 @@
 			<label class="plain" for="scale">Scale (inches per SVG unit)</label>
 			<input id="scale" class="plain-input" bind:value={scale} placeholder="automatic" inputmode="decimal" autocomplete="off" />
 		</details>
+
+		{#if valid}
+			<p class="help bookmark">
+				<strong>Bookmark this page</strong> to keep these settings. The address holds your bushing, bit, mode and size, and bookmarks sync to your other devices.
+			</p>
+		{/if}
 	</section>
 
 	<section class="preview" aria-label="Preview" bind:this={previewEl}>
@@ -485,6 +491,11 @@
 		margin: 0;
 		font-size: var(--step--1);
 		color: var(--text-soft);
+	}
+	.bookmark {
+		padding: 0.5rem 0.7rem;
+		border-left: 4px solid var(--brass);
+		background: color-mix(in srgb, var(--brass) 10%, transparent);
 	}
 	.pill {
 		display: grid;
