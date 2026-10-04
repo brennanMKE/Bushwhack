@@ -1,4 +1,4 @@
-// Remembers bushing, bit and mode per browser. Never the uploaded files.
+// Remembers bushing, bit, mode and minimum bridge per browser. Never the uploaded files.
 
 const KEY = 'bushwhack.settings.v1';
 
@@ -6,9 +6,10 @@ export interface Saved {
 	bushing: string;
 	bit: string;
 	mode: 'hole' | 'piece';
+	minBridge: string;
 }
 
-export const defaults: Saved = { bushing: '5/16', bit: '1/8', mode: 'hole' };
+export const defaults: Saved = { bushing: '5/16', bit: '1/8', mode: 'hole', minBridge: '1/4' };
 
 export function loadSettings(): Saved {
 	try {
@@ -18,7 +19,8 @@ export function loadSettings(): Saved {
 		return {
 			bushing: typeof v.bushing === 'string' ? v.bushing : defaults.bushing,
 			bit: typeof v.bit === 'string' ? v.bit : defaults.bit,
-			mode: v.mode === 'piece' ? 'piece' : 'hole'
+			mode: v.mode === 'piece' ? 'piece' : 'hole',
+			minBridge: typeof v.minBridge === 'string' ? v.minBridge : defaults.minBridge
 		};
 	} catch {
 		return { ...defaults };

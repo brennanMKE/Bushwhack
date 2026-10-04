@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import MatPreview from '#lib/components/MatPreview.svelte';
 	import MeasureInput from '#lib/components/MeasureInput.svelte';
 	import ModeToggle from '#lib/components/ModeToggle.svelte';
@@ -26,7 +27,7 @@
 	let mode = $state<'hole' | 'piece'>(saved.mode);
 	let fit = $state<'canvas' | 'artwork'>('canvas');
 	let size = $state('6');
-	let minBridge = $state('1/4');
+	let minBridge = $state(saved.minBridge);
 	let useDocument = $state(false);
 	let scale = $state('');
 
@@ -43,7 +44,14 @@
 	let fileInput = $state<HTMLInputElement | undefined>();
 	let previewEl = $state<HTMLElement | undefined>();
 
-	$effect(() => saveSettings({ bushing, bit, mode }));
+	// Values that arrived in a shared link aren't saved as this browser's
+	// defaults until the viewer changes one of them.
+	let fromLink = '';
+	const settingsKey = () => JSON.stringify([bushing, bit, mode, minBridge]);
+	$effect(() => {
+		const key = settingsKey();
+		if (key !== fromLink) saveSettings({ bushing, bit, mode, minBridge });
+	});
 
 	const valid = $derived(
 		[bushing, bit, minBridge, ...(useDocument || scale.trim() ? [] : [size])].every((v) => {
@@ -60,10 +68,59 @@
 		return `${fraction(o)} (${o.toFixed(4)} in)`;
 	});
 
+	// Settings from the URL (?bushing=5/16&bit=1/8&mode=hole&size=5) win over
+	// saved ones, so a shared link reproduces the same job. Re-applied when
+	// back/forward lands on a different URL.
+	const lengthParam = (q: { get(k: string): string | null }, k: string) => {
+		const v = q.get(k)?.trim();
+		return v && parseLength(v) ? v : null;
+	};
+	$effect(() => {
+		const q = page.url.searchParams;
+		untrack(() => {
+			bushing = lengthParam(q, 'bushing') ?? bushing;
+			bit = lengthParam(q, 'bit') ?? bit;
+			const m = q.get('mode');
+			if (m === 'hole' || m === 'piece') mode = m;
+			size = lengthParam(q, 'size') ?? size;
+			if (q.has('bushing') || q.has('bit') || q.has('mode')) fromLink = settingsKey();
+		});
+	});
+
+	// Keep the URL in step with the settings, without adding history entries.
+	let urlTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		const want = {
+			bushing,
+			bit,
+			mode,
+			size: useDocument || scale.trim() ? '' : size,
+			pattern: source?.kind === 'pattern' ? source.pattern.slug : source?.kind === 'file' ? '' : null
+		};
+		clearTimeout(urlTimer);
+		urlTimer = setTimeout(() => untrack(() => syncURL(want)), 250);
+		return () => clearTimeout(urlTimer);
+	});
+
+	function syncURL(want: Record<string, string | null>) {
+		const url = new URL(location.href);
+		if (url.pathname !== '/make') return;
+		const q = new URLSearchParams();
+		// pattern null: nothing chosen yet, keep whatever the link asked for.
+		const pattern = want.pattern ?? url.searchParams.get('pattern');
+		if (pattern) q.set('pattern', pattern);
+		for (const k of ['bushing', 'bit', 'mode', 'size']) if (want[k]?.trim()) q.set(k, want[k]!.trim());
+		// "/" is legal in a query; keep 5/16 readable.
+		const search = q.toString().replace(/%2F/gi, '/');
+		if (search === url.search.slice(1)) return;
+		goto(`/make${search ? '?' + search : ''}`, { replace: true, shallow: true });
+	}
+
 	// Pattern from ?pattern=slug, also when navigating between patterns here.
 	$effect(() => {
 		const slug = page.url.searchParams.get('pattern');
 		if (!slug) return;
+		const urlSize = lengthParam(page.url.searchParams, 'size');
 		untrack(() => {
 			if (source?.kind === 'pattern' && source.pattern.slug === slug) return;
 			loadPatterns()
@@ -73,7 +130,7 @@
 						error = "That pattern doesn't exist. Pick another or drop in your own SVG.";
 						return;
 					}
-					size = String(p.recommendedSizeIn);
+					size = urlSize ?? String(p.recommendedSizeIn);
 					fit = p.fit === 'artwork' ? 'artwork' : 'canvas';
 					useDocument = false;
 					scale = '';
@@ -145,7 +202,6 @@
 			return;
 		}
 		error = '';
-		if (page.url.searchParams.has('pattern')) history.replaceState(history.state, '', '/make');
 		source = { kind: 'file', file: f, name: f.name };
 	}
 
