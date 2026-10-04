@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Swatch from '#lib/components/Swatch.svelte';
+	import LightsToggle from '#lib/components/LightsToggle.svelte';
+	import { lights } from '#lib/lights.svelte.ts';
 	import { loadPatterns, type Occasion, type Pattern } from '#lib/api.ts';
 	import { fraction } from '#lib/units.ts';
 
@@ -37,7 +39,8 @@
 		<p class="crumb"><a href="/patterns">Patterns</a> / {occasion?.name}</p>
 		<div class="detail">
 			<div class="big">
-				<Swatch drawing={pattern.drawing} widthIn={pattern.widthIn} heightIn={pattern.heightIn} label="{pattern.name} pattern at its recommended size" />
+				<Swatch drawing={pattern.drawing} widthIn={pattern.widthIn} heightIn={pattern.heightIn} label="{pattern.name} pattern at its recommended size" lit={lights.on} />
+				<p class="toggle"><LightsToggle /></p>
 			</div>
 			<div class="info">
 				<h1>{pattern.name}</h1>
@@ -63,6 +66,9 @@
 <style>
 	.page {
 		padding-block: var(--s4) var(--s8);
+	}
+	.toggle {
+		margin-top: var(--s1);
 	}
 	.crumb {
 		font-size: var(--step--1);

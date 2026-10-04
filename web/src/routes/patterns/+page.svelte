@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import PatternTile from '#lib/components/PatternTile.svelte';
 	import Seo from '#lib/components/Seo.svelte';
+	import LightsToggle from '#lib/components/LightsToggle.svelte';
 	import { loadPatterns, type Occasion } from '#lib/api.ts';
 
 	let occasions = $state<Occasion[]>([]);
@@ -24,6 +25,8 @@
 <div class="wrap page">
 	<h1>Patterns</h1>
 	<p class="prose lead">Original starter shapes for holidays and special days, each checked to cut cleanly with a 5/16 in bushing and 1/8 in bit at its recommended size. Every one fits a 6 × 6 in template. Free to use, sell what you make.</p>
+
+	<p class="toggle"><LightsToggle /> <span>See each pattern as a light box, with a candle behind it.</span></p>
 
 	{#if failed}
 		<div class="note" role="alert"><span>Patterns didn't load. Refresh the page to try again.</span></div>
@@ -53,6 +56,15 @@
 	}
 	section {
 		margin-bottom: var(--s6);
+	}
+	.toggle {
+		display: flex;
+		align-items: center;
+		gap: var(--s2);
+		flex-wrap: wrap;
+		margin: calc(-1 * var(--s4)) 0 var(--s6);
+		font-size: var(--step--1);
+		color: var(--text-soft);
 	}
 	.soon {
 		font-family: var(--font-text);
