@@ -19,7 +19,7 @@ func TestUpcoming(t *testing.T) {
 	cases := map[string]string{
 		"2026-10-02": "halloween", "2026-09-01": "halloween", "2026-10-31": "halloween",
 		"2026-11-01": "thanksgiving", "2026-11-26": "thanksgiving", "2026-11-28": "thanksgiving",
-		"2026-11-29": "winter", "2026-12-31": "winter", "2027-01-01": "valentines",
+		"2026-11-29": "winter", "2026-12-25": "winter", "2026-12-26": "newyear", "2026-12-31": "newyear", "2027-01-01": "valentines",
 		"2027-02-14": "valentines", "2027-02-15": "spring", "2027-05-01": "july4",
 		"2027-07-04": "july4", "2027-07-05": "halloween", "2027-08-31": "halloween",
 	}

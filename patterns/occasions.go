@@ -23,7 +23,8 @@ var Occasions = []Occasion{
 	// Thanksgiving is the fourth Thursday of November, Nov 22 to 28; the
 	// window runs to the latest possible date so it stays deterministic.
 	{"thanksgiving", "Thanksgiving", "Turkeys, pumpkins and autumn leaves for the harvest table.", 11, 1, 11, 28},
-	{"winter", "Winter holidays", "Snowflakes, snowmen, stockings and candles for the end of the year.", 11, 29, 12, 31},
+	{"winter", "Winter holidays", "Snowflakes, snowmen, stockings and candles for Christmas and Hanukkah.", 11, 29, 12, 25},
+	{"newyear", "New Year's Eve", "Champagne, clocks and party hats to ring in the new year.", 12, 26, 12, 31},
 	{"celebrations", "Celebrations", "Birthdays, weddings and anniversaries, any time of year.", 0, 0, 0, 0},
 }
 
